@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class Request {
     private String method;
     private String path;
     private final Map<String, String> headers = new HashMap<>();
-    private final Map<String, String> queryParams = new HashMap<>();
+    private final Map<String, List<String>> queryParams = new HashMap<>();
     private final StringBuffer body = new StringBuffer();
 
     public static Request parse(String requestText) {
@@ -67,11 +68,16 @@ public class Request {
     private void parseQueryParams(String requestLine) {
         final List<NameValuePair> pairs = URLEncodedUtils.parse(requestLine, StandardCharsets.UTF_8);
         for(NameValuePair pair : pairs) {
-            queryParams.put(pair.getName(), pair.getValue());
+            List<String> values = queryParams.get(pair.getName());
+            if (values == null) {
+                values = new ArrayList<>();
+            }
+            values.add(pair.getValue());
+            queryParams.put(pair.getName(), values);
         }
     }
 
-    public String getQueryParam(String name) {
+    public List<String> getQueryParam(String name) {
         return queryParams.get(name);
     }
 
@@ -91,7 +97,7 @@ public class Request {
         return path;
     }
 
-    public Map<String, String> getQueryParams() {
+    public Map<String, List<String>> getQueryParams() {
         return queryParams;
     }
 }
