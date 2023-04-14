@@ -16,6 +16,7 @@ public class Request {
     private String method;
     private String path;
     private final Map<String, String> headers = new HashMap<>();
+    private final Map<String, List<String>> queryParams = new HashMap<>();
     private final Map<String, List<String>> postParams = new HashMap<>();
     private final StringBuffer body = new StringBuffer();
 
@@ -30,6 +31,7 @@ public class Request {
             }
             instance.method = parts[0];
             instance.path = parts[1].split("\\?")[0];
+            instance.parseQueryParams(requestLine);
 
             String header = reader.readLine();
             while (header.length() > 0) {
@@ -68,6 +70,11 @@ public class Request {
         body.append(bodyLine).append("\r\n");
     }
 
+    private void parseQueryParams(String requestLine) {
+        final List<NameValuePair> pairs = URLEncodedUtils.parse(requestLine, StandardCharsets.UTF_8);
+        for(NameValuePair pair : pairs) {
+            List<String> values = queryParams.get(pair.getName());
+            
     public void parseBodyParams(String body) {
         List<NameValuePair> pairs = URLEncodedUtils.parse(body, StandardCharsets.UTF_8);
         for(NameValuePair pair : pairs) {
@@ -76,6 +83,12 @@ public class Request {
                 values = new ArrayList<>();
             }
             values.add(pair.getValue());
+            queryParams.put(pair.getName(), values);
+        }
+    }
+
+    public List<String> getQueryParam(String name) {
+        return queryParams.get(name);
             postParams.put(pair.getName(), values);
         }
     }
@@ -100,6 +113,9 @@ public class Request {
         return path;
     }
 
+    public Map<String, List<String>> getQueryParams() {
+        return queryParams;
+        
     public Map<String, List<String>> getPostParams() {
         return postParams;
     }
