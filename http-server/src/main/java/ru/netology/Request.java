@@ -1,5 +1,10 @@
 package ru.netology;
 
+import org.apache.commons.fileupload.FileUploadBase;
+import org.apache.commons.fileupload.MultipartStream;
+import org.apache.commons.fileupload.ParameterParser;
+
+import java.io.*;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 
@@ -16,6 +21,7 @@ public class Request {
     private String method;
     private String path;
     private final Map<String, String> headers = new HashMap<>();
+    private final Map<String, List<String>> partParams = new HashMap<>();
     private final Map<String, List<String>> queryParams = new HashMap<>();
     private final Map<String, List<String>> postParams = new HashMap<>();
     private final StringBuffer body = new StringBuffer();
@@ -45,6 +51,8 @@ public class Request {
                 bodyLine = reader.readLine();
             }
 
+            if (instance.headers.get("Content-Type").contains("boundary=")) {
+                instance.parsePartsParams();
             if (!instance.getBody().isEmpty() && instance.getHeaders().get("Content-Type").equals("x-www-form-url-encoded")) {
                 instance.parseBodyParams(instance.getBody());
             }
@@ -55,6 +63,60 @@ public class Request {
 
         return instance;
     }
+
+    private void parsePartsParams() {
+        final String boundary = headers.get("Content-Type").split("boundary=")[1];
+        ByteArrayInputStream bodyContent = new ByteArrayInputStream(getBody().getBytes());
+        MultipartStream multyPartStream = new MultipartStream(bodyContent, boundary.getBytes());
+        boolean hasNextPart = false;
+
+        try {
+            hasNextPart = multyPartStream.skipPreamble();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        while (hasNextPart) {
+            ParameterParser parser = new ParameterParser();
+
+            try {
+                OutputStream output = new ByteArrayOutputStream();
+
+                String header = multyPartStream.readHeaders();
+                Map<String, String> headerParams = parser.parse(header, ';');
+                if (headerParams.get("filename") != null || header.contains("\r\nContent-Type: ")) {
+                    multyPartStream.discardBodyData();
+                } else {
+                    multyPartStream.readBodyData(output);
+
+                    String partParamName = headerParams.get("name");
+
+                    if (partParamName != null) {
+                        String partParamValue = output.toString();
+
+                        List<String> values = partParams.get(partParamName);
+                        if (values == null) {
+                            values = new ArrayList<>();
+                        }
+                        values.add(partParamValue);
+
+                        partParams.put(partParamName, values);
+                    }
+                }
+            } catch (FileUploadBase.FileUploadIOException|MultipartStream.MalformedStreamException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                hasNextPart = multyPartStream.readBoundary();
+            } catch (FileUploadBase.FileUploadIOException|MultipartStream.MalformedStreamException e) {
+                e.printStackTrace();
+                hasNextPart = false;
+            }
+        }
+    }
+
     private Request() {
     }
 
