@@ -5,6 +5,13 @@ import org.apache.commons.fileupload.MultipartStream;
 import org.apache.commons.fileupload.ParameterParser;
 
 import java.io.*;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.net.URLEncodedUtils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +22,8 @@ public class Request {
     private String path;
     private final Map<String, String> headers = new HashMap<>();
     private final Map<String, List<String>> partParams = new HashMap<>();
+    private final Map<String, List<String>> queryParams = new HashMap<>();
+    private final Map<String, List<String>> postParams = new HashMap<>();
     private final StringBuffer body = new StringBuffer();
 
     public static Request parse(String requestText) {
@@ -27,7 +36,8 @@ public class Request {
                 return null;
             }
             instance.method = parts[0];
-            instance.path = parts[1];
+            instance.path = parts[1].split("\\?")[0];
+            instance.parseQueryParams(requestLine);
 
             String header = reader.readLine();
             while (header.length() > 0) {
@@ -43,6 +53,8 @@ public class Request {
 
             if (instance.headers.get("Content-Type").contains("boundary=")) {
                 instance.parsePartsParams();
+            if (!instance.getBody().isEmpty() && instance.getHeaders().get("Content-Type").equals("x-www-form-url-encoded")) {
+                instance.parseBodyParams(instance.getBody());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -120,6 +132,33 @@ public class Request {
         body.append(bodyLine).append("\r\n");
     }
 
+    private void parseQueryParams(String requestLine) {
+        final List<NameValuePair> pairs = URLEncodedUtils.parse(requestLine, StandardCharsets.UTF_8);
+        for(NameValuePair pair : pairs) {
+            List<String> values = queryParams.get(pair.getName());
+            
+    public void parseBodyParams(String body) {
+        List<NameValuePair> pairs = URLEncodedUtils.parse(body, StandardCharsets.UTF_8);
+        for(NameValuePair pair : pairs) {
+            List<String> values = postParams.get(pair.getName());
+            if (values == null) {
+                values = new ArrayList<>();
+            }
+            values.add(pair.getValue());
+            queryParams.put(pair.getName(), values);
+        }
+    }
+
+    public List<String> getQueryParam(String name) {
+        return queryParams.get(name);
+            postParams.put(pair.getName(), values);
+        }
+    }
+
+    public List<String> getPostParam(String name) {
+        return postParams.get(name);
+    }
+
     public String getMethod() {
         return method;
     }
@@ -134,5 +173,12 @@ public class Request {
 
     public String getPath() {
         return path;
+    }
+
+    public Map<String, List<String>> getQueryParams() {
+        return queryParams;
+        
+    public Map<String, List<String>> getPostParams() {
+        return postParams;
     }
 }
