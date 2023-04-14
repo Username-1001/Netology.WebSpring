@@ -5,6 +5,7 @@ import org.apache.commons.fileupload.MultipartStream;
 import org.apache.commons.fileupload.ParameterParser;
 
 import java.io.*;
+
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URLEncodedUtils;
 
@@ -28,7 +29,7 @@ public class Request {
 
     public static Request parse(String requestText) {
         Request instance;
-        try(BufferedReader reader = new BufferedReader(new StringReader(requestText))) {
+        try (BufferedReader reader = new BufferedReader(new StringReader(requestText))) {
             instance = new Request();
             String requestLine = reader.readLine();
             final var parts = requestLine.split(" ");
@@ -53,15 +54,15 @@ public class Request {
 
             if (instance.headers.get("Content-Type").contains("boundary=")) {
                 instance.parsePartsParams();
-            if (!instance.getBody().isEmpty() && instance.getHeaders().get("Content-Type").equals("x-www-form-url-encoded")) {
-                instance.parseBodyParams(instance.getBody());
+                if (!instance.getBody().isEmpty() && instance.getHeaders().get("Content-Type").equals("x-www-form-url-encoded")) {
+                    instance.parseBodyParams(instance.getBody());
+                }
             }
+            return instance;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-
-        return instance;
     }
 
     private void parsePartsParams() {
@@ -103,14 +104,14 @@ public class Request {
                         partParams.put(partParamName, values);
                     }
                 }
-            } catch (FileUploadBase.FileUploadIOException|MultipartStream.MalformedStreamException e) {
+            } catch (FileUploadBase.FileUploadIOException | MultipartStream.MalformedStreamException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             try {
                 hasNextPart = multyPartStream.readBoundary();
-            } catch (FileUploadBase.FileUploadIOException|MultipartStream.MalformedStreamException e) {
+            } catch (FileUploadBase.FileUploadIOException | MultipartStream.MalformedStreamException e) {
                 e.printStackTrace();
                 hasNextPart = false;
             }
@@ -134,13 +135,8 @@ public class Request {
 
     private void parseQueryParams(String requestLine) {
         final List<NameValuePair> pairs = URLEncodedUtils.parse(requestLine, StandardCharsets.UTF_8);
-        for(NameValuePair pair : pairs) {
+        for (NameValuePair pair : pairs) {
             List<String> values = queryParams.get(pair.getName());
-            
-    public void parseBodyParams(String body) {
-        List<NameValuePair> pairs = URLEncodedUtils.parse(body, StandardCharsets.UTF_8);
-        for(NameValuePair pair : pairs) {
-            List<String> values = postParams.get(pair.getName());
             if (values == null) {
                 values = new ArrayList<>();
             }
@@ -149,10 +145,20 @@ public class Request {
         }
     }
 
-    public List<String> getQueryParam(String name) {
-        return queryParams.get(name);
+    public void parseBodyParams(String body) {
+        List<NameValuePair> pairs = URLEncodedUtils.parse(body, StandardCharsets.UTF_8);
+        for (NameValuePair pair : pairs) {
+            List<String> values = postParams.get(pair.getName());
+            if (values == null) {
+                values = new ArrayList<>();
+            }
+            values.add(pair.getValue());
             postParams.put(pair.getName(), values);
         }
+    }
+
+    public List<String> getQueryParam(String name) {
+        return queryParams.get(name);
     }
 
     public List<String> getPostParam(String name) {
@@ -177,8 +183,10 @@ public class Request {
 
     public Map<String, List<String>> getQueryParams() {
         return queryParams;
-        
+    }
+
     public Map<String, List<String>> getPostParams() {
         return postParams;
     }
 }
+
