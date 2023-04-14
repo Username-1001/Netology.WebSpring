@@ -17,6 +17,7 @@ public class Request {
     private String path;
     private final Map<String, String> headers = new HashMap<>();
     private final Map<String, List<String>> queryParams = new HashMap<>();
+    private final Map<String, List<String>> postParams = new HashMap<>();
     private final StringBuffer body = new StringBuffer();
 
     public static Request parse(String requestText) {
@@ -42,6 +43,10 @@ public class Request {
             while (bodyLine != null) {
                 instance.appendBodyLine(bodyLine);
                 bodyLine = reader.readLine();
+            }
+
+            if (!instance.getBody().isEmpty() && instance.getHeaders().get("Content-Type").equals("x-www-form-url-encoded")) {
+                instance.parseBodyParams(instance.getBody());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,6 +74,11 @@ public class Request {
         final List<NameValuePair> pairs = URLEncodedUtils.parse(requestLine, StandardCharsets.UTF_8);
         for(NameValuePair pair : pairs) {
             List<String> values = queryParams.get(pair.getName());
+            
+    public void parseBodyParams(String body) {
+        List<NameValuePair> pairs = URLEncodedUtils.parse(body, StandardCharsets.UTF_8);
+        for(NameValuePair pair : pairs) {
+            List<String> values = postParams.get(pair.getName());
             if (values == null) {
                 values = new ArrayList<>();
             }
@@ -79,6 +89,12 @@ public class Request {
 
     public List<String> getQueryParam(String name) {
         return queryParams.get(name);
+            postParams.put(pair.getName(), values);
+        }
+    }
+
+    public List<String> getPostParam(String name) {
+        return postParams.get(name);
     }
 
     public String getMethod() {
@@ -99,5 +115,8 @@ public class Request {
 
     public Map<String, List<String>> getQueryParams() {
         return queryParams;
+        
+    public Map<String, List<String>> getPostParams() {
+        return postParams;
     }
 }
