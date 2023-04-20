@@ -18,11 +18,11 @@ public class PostController {
     }
 
     @GetMapping
-    public List<Post> all(HttpServletResponse response) throws IOException {
+    public List<Post> all() throws IOException {
         return service.all();
     }
     @GetMapping("/{id}")
-    public Post getById(@PathVariable long id, HttpServletResponse response) {
+    public Post getById(@PathVariable long id) {
         return service.getById(id);
     }
     @PostMapping
@@ -30,7 +30,7 @@ public class PostController {
         return service.save(post);
     }
     @DeleteMapping
-    public void removeById(@PathVariable long id, HttpServletResponse response) {
+    public void removeById(@PathVariable long id) {
         service.removeById(id);
     }
 }
