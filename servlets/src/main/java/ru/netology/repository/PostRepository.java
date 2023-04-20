@@ -17,17 +17,23 @@ public class PostRepository {
   private ConcurrentHashMap<Long, Post> repository = new ConcurrentHashMap<>();
   private AtomicLong lastId = new AtomicLong();
   public List<Post> all() {
-    return repository.values().stream().collect(Collectors.toList());
+    return repository.values().stream().filter(o -> !o.isDeleted()).collect(Collectors.toList());
   }
 
   public Optional<Post> getById(long id) {
-    return Optional.ofNullable(repository.get(id));
+    Post post = repository.get(id);
+    if (post.isDeleted()) {
+      post = null;
+    }
+    return Optional.ofNullable(post);
   }
 
   public Post save(Post post) {
+    Optional<Post> oldPost = getById(post.getId());
+
     if (post.getId() == 0) {
       post.setId(lastId.addAndGet(1));
-    } else if(getById(post.getId()).isEmpty()) {
+    } else if(oldPost.isEmpty() || !oldPost.isEmpty() && oldPost.get().isDeleted()) {
       throw new NotFoundException("Wrong post id");
     }
     repository.put(post.getId(), post);
@@ -35,6 +41,11 @@ public class PostRepository {
   }
 
   public void removeById(long id) {
-    repository.remove(id);
+    Optional<Post> postToDeleteOpt = getById(id);
+    if (!postToDeleteOpt.isEmpty()) {
+      Post postToDelete = postToDeleteOpt.get();
+      postToDelete.setDeleted(true);
+      repository.put(id, postToDelete);
+    }
   }
 }
