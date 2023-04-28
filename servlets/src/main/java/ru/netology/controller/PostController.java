@@ -24,6 +24,8 @@ public class PostController {
     }
     @GetMapping("/{id}")
     public PostDto getById(@PathVariable long id) {
+        return service.getById(id);
+    }
 
     @PostMapping
     public PostDto save(@RequestBody PostDto postDto) throws IOException {
