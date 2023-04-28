@@ -1,11 +1,15 @@
 package ru.netology.service;
 
 import org.springframework.stereotype.Service;
+import ru.netology.dto.PostDto;
 import ru.netology.exception.NotFoundException;
 import ru.netology.model.Post;
 import ru.netology.repository.PostRepository;
+import ru.netology.utils.MappingUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class PostService {
   private final PostRepository repository;
@@ -14,16 +18,20 @@ public class PostService {
     this.repository = repository;
   }
 
-  public List<Post> all() {
-    return repository.all();
+  public List<PostDto> all() {
+    List<Post> posts = repository.all();
+    return posts.stream().map(MappingUtils::mapToPostDto).collect(Collectors.toList());
   }
 
-  public Post getById(long id) {
-    return repository.getById(id).orElseThrow(NotFoundException::new);
+  public PostDto getById(long id) {
+    Post post = repository.getById(id).orElseThrow(NotFoundException::new);
+    return MappingUtils.mapToPostDto(post);
   }
 
-  public Post save(Post post) {
-    return repository.save(post);
+  public PostDto save(PostDto postDto) {
+    Post postToSave = MappingUtils.mapToPost(postDto);
+    Post postSaved = repository.save(postToSave);
+    return MappingUtils.mapToPostDto(postSaved);
   }
 
   public void removeById(long id) {
